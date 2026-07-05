@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CollabHub — Календарь</title>
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-page="calendar">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">CH</span><span><b>CollabHub</b><small>календарь</small></span></a>
+    <nav class="main-nav" id="mainNav"></nav>
+  </aside>
+  <main class="workspace">
+    <header class="page-head">
+      <div>
+        <h1>Календарь</h1>
+        <p>Календарь выбирает дату и открывает карту недели вокруг выбранного дня.</p>
+      </div>
+      <div class="head-actions">
+        <input class="year-select" id="yearSelect" type="number" min="1" max="9999" aria-label="Год">
+        <button class="btn nav-arrow" id="prevMonthBtn" aria-label="Назад">←</button>
+        <button class="btn" id="todayBtn">сегодня</button>
+        <button class="btn nav-arrow" id="nextMonthBtn" aria-label="Вперёд">→</button>
+        <a class="btn primary" id="openWeekBtn" href="index.html">открыть неделю</a>
+      </div>
+    </header>
+    <section class="surface">
+      <div class="surface-head">
+        <div>
+          <h2 id="monthTitle">Месяц</h2>
+          <p>Клик по дню откроет расписание недели. Зеленее день — больше свободных вечерних часов.</p>
+        </div>
+      </div>
+      <div class="month-grid" id="monthGrid"></div>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div>
+  <script src="assets/app-data.js"></script>
+  <script src="assets/app-ui.js"></script>
+  <script src="assets/page-calendar.js"></script>
+</body>
+</html>

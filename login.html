@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CollabHub — Вход</title>
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body class="login-page" data-page="login">
+  <main class="login-card">
+    <div class="brand login-brand"><span class="brand-mark">CH</span><span><b>CollabHub</b><small>локальный вход</small></span></div>
+    <h1 id="loginTitle">Вход</h1>
+    <p id="loginHint">Если это первый запуск, создай мастер-аккаунт.</p>
+    <form class="form-grid" id="loginForm">
+      <div class="form-row"><label>Логин</label><input name="login" autocomplete="username" required></div>
+      <div class="form-row"><label>PIN / пароль</label><input name="pin" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary" type="submit" id="loginSubmit">Войти</button>
+    </form>
+  </main>
+  <div class="toast" id="toast"></div>
+  <script src="assets/app-data.js"></script>
+  <script src="assets/page-login.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CollabHub — Общее</title>
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-page="overview">
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">CH</span>
+      <span><b>CollabHub</b><small>быстро собрать людей</small></span>
+    </a>
+    <nav class="main-nav" id="mainNav"></nav>
+  </aside>
+
+  <main class="workspace">
+    <header class="page-head">
+      <div>
+        <h1>Общее</h1>
+        <p id="weekSubtitle">Агрегированная карта доступности выбранной недели.</p>
+      </div>
+      <div class="head-actions">
+        <div class="view-switch" id="calendarModeSwitch"></div>
+        <input class="year-select" id="calendarYearSelect" type="number" min="1" max="9999" aria-label="Год">
+        <button class="btn nav-arrow" id="prevWeekBtn" aria-label="Назад">←</button>
+        <button class="btn" id="todayWeekBtn">сегодня</button>
+        <button class="btn nav-arrow" id="nextWeekBtn" aria-label="Вперёд">→</button>
+        <button class="btn primary" id="createEventBtn">+ ивент</button>
+        <button class="btn" id="toggleEventsBtn">◆ ивенты</button>
+        <div class="scale-switch" id="scaleSwitch"></div>
+      </div>
+    </header>
+
+    <section class="answer-grid" id="answerGrid"></section>
+
+    <section class="surface">
+      <div class="surface-head">
+        <div>
+          <h2 id="weekTitle">Карта недели</h2>
+          <p id="calendarModeHint">Цвет = сколько людей доступно. Фиолетовая линия = ивент поверх.</p>
+        </div>
+        <div class="legend compact">
+          <span><i class="key high"></i>много свободных</span>
+          <span><i class="key low"></i>есть свободные</span>
+          <span><i class="key maybe"></i>возможно</span>
+          <span><i class="key busy"></i>заняты</span>
+          <span><i class="key none"></i>нет данных</span>
+        </div>
+      </div>
+      <div class="heatmap-wrap">
+        <div class="calendar-stage" id="calendarStage">
+          <div class="heatmap calendar-view is-active" id="overviewGrid"></div>
+          <div class="month-grid calendar-view" id="inlineMonthGrid"></div>
+        </div>
+      </div>
+      <div class="resize-hint">Таблицу можно растянуть за правый нижний угол. Размер сохраняется.</div>
+    </section>
+  </main>
+
+  <aside class="detail-panel" id="detailPanel" aria-hidden="true">
+    <header>
+      <strong id="detailTitle">Детали</strong>
+      <button class="icon-btn" id="closeDetailBtn">×</button>
+    </header>
+    <div id="detailBody"></div>
+  </aside>
+
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-card">
+      <header><strong id="modalTitle"></strong><button class="icon-btn" id="closeModalBtn">×</button></header>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="assets/app-data.js"></script>
+  <script src="assets/app-ui.js"></script>
+  <script src="assets/page-overview.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CollabHub — Участник</title>
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-page="people">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">CH</span><span><b>CollabHub</b><small>личная таблица</small></span></a>
+    <nav class="main-nav" id="mainNav"></nav>
+  </aside>
+
+  <main class="workspace">
+    <header class="page-head">
+      <div>
+        <h1 id="memberTitle">Участник</h1>
+        <p id="memberMeta"></p>
+      </div>
+      <div class="head-actions">
+        <button class="btn nav-arrow" id="prevWeekBtn" aria-label="Назад">←</button>
+        <button class="btn" id="todayWeekBtn">сегодня</button>
+        <button class="btn nav-arrow" id="nextWeekBtn" aria-label="Вперёд">→</button>
+        <button class="btn" id="toggleEventsBtn">◆ ивенты</button>
+        <button class="btn" id="editPersonBtn">редактировать</button>
+      </div>
+    </header>
+
+    <section class="editor-bar">
+      <div class="editor-block">
+        <small>Кисть</small>
+        <div class="palette" id="palette"></div>
+      </div>
+      <div class="editor-block grow-editor">
+        <small>Быстро заполнить</small>
+        <div class="range-tools">
+          <select id="daySelect"></select>
+          <select id="startHourSelect"></select>
+          <select id="endHourSelect"></select>
+          <button class="btn primary" id="applyRangeBtn">залить</button>
+        </div>
+      </div>
+      <div class="editor-block">
+        <small>Пресеты</small>
+        <div class="day-tools">
+          <button class="btn" id="eveningFreeBtn">вечер свободен</button>
+          <button class="btn" id="workBusyBtn">9–18 занят</button>
+          <button class="btn" id="dayFreeBtn">день свободен</button>
+          <button class="btn" id="dayClearBtn">очистить</button>
+        </div>
+        <div class="day-tools" id="customPresets"></div>
+      </div>
+      <div class="editor-block">
+        <small>Масштаб</small>
+        <div class="scale-switch" id="scaleSwitch"></div>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="surface-head">
+        <div>
+          <h2>Недельная таблица</h2>
+          <p>Выберите кисть, затем протяните по часам. Правый клик по ячейке добавляет комментарий.</p>
+        </div>
+        <div class="legend compact" id="memberLegend"></div>
+      </div>
+      <div class="heatmap-wrap">
+        <div class="heatmap" id="memberGrid"></div>
+      </div>
+      <div class="resize-hint">Тяните правый нижний угол таблицы, чтобы изменить ширину и высоту. Размер сохраняется.</div>
+    </section>
+  </main>
+
+  <aside class="detail-panel" id="detailPanel" aria-hidden="true">
+    <header>
+      <strong id="detailTitle">Ячейка</strong>
+      <button class="icon-btn" id="closeDetailBtn">×</button>
+    </header>
+    <div id="detailBody"></div>
+  </aside>
+
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-card">
+      <header><strong id="modalTitle"></strong><button class="icon-btn" id="closeModalBtn">×</button></header>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="assets/app-data.js"></script>
+  <script src="assets/app-ui.js"></script>
+  <script src="assets/page-member.js"></script>
+</body>
+</html>
