@@ -12,7 +12,7 @@
   let weekStart = CH.startOfWeek(CH.fromDateKey(CH.state.settings.activeDate));
 
   if (!person) location.href = "people.html";
-  if (CH.currentUser() && !CH.canViewParticipant(personId)) location.href = `member.html?id=${CH.currentUser().participantId}`;
+  if (CH.currentUser() && !CH.canViewParticipant(personId)) location.href = "people.html";
 
   const grid = document.getElementById("memberGrid");
   const panel = document.getElementById("detailPanel");
@@ -29,8 +29,10 @@
     bindToolActions();
     renderGrid();
     CH.renderScaleSwitches();
-    document.getElementById("editPersonBtn").classList.toggle("hidden", !CH.canEditParticipant(personId));
-    document.querySelector(".editor-bar").classList.toggle("readonly-tools", !CH.canEditParticipant(personId));
+    const canEdit = CH.canEditParticipant(personId);
+    document.getElementById("editPersonBtn").classList.toggle("hidden", !canEdit);
+    document.querySelector(".editor-bar").classList.toggle("hidden", !canEdit);
+    document.querySelector(".editor-bar").classList.toggle("readonly-tools", !canEdit);
   }
 
   function setupEditorBar() {
@@ -531,6 +533,7 @@
     fillRange(day, 0, 24, selected);
   };
   document.getElementById("editPersonBtn").onclick = () => {
+    if (!CH.canEditParticipant(personId)) return;
     CH.modal("Редактировать участника", CH.personForm(person));
     CH.bindPersonForm(render);
   };

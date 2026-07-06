@@ -61,7 +61,17 @@
 
   CH.canViewParticipant = function (participantId) {
     const user = CH.currentUser();
-    return user?.role === "master" || user?.role === "admin" || user?.participantId === participantId || Boolean(user?.canViewOthers);
+    return Boolean(user && CH.person(participantId));
+  };
+
+  CH.canManageEvents = function () {
+    const role = CH.currentUser()?.role;
+    return role === "master" || role === "admin" || role === "teamlead";
+  };
+
+  CH.canEditEventStatus = function (participantId) {
+    const user = CH.currentUser();
+    return CH.canManageEvents() || user?.participantId === participantId;
   };
 
   CH.personForm = function (person) {
@@ -193,6 +203,7 @@
   };
 
   CH.bindEventForm = function (onDone) {
+    if (!CH.canManageEvents()) return;
     const formElement = document.getElementById("eventForm");
     const refreshSuggestions = () => {
       const form = new FormData(formElement);

@@ -223,19 +223,38 @@
     return events.sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || Number(a.start) - Number(b.start));
   };
 
+  CH.mergeEventStatusesForParticipant = function (remoteEvents, localEvents, participantId) {
+    const events = (remoteEvents || []).map(CH.clone);
+    if (!participantId) return events;
+    events.forEach((remoteEvent) => {
+      const localEvent = (localEvents || []).find((event) => event?.id === remoteEvent.id);
+      const localStatus = localEvent?.participantStatus?.[participantId];
+      if (!localStatus) return;
+      remoteEvent.participantStatus = remoteEvent.participantStatus || {};
+      remoteEvent.participantStatus[participantId] = localStatus;
+    });
+    return events.sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || Number(a.start) - Number(b.start));
+  };
+
   CH.mergeState = function (remoteState, localState, mode) {
     const remote = CH.clone(remoteState);
     const local = CH.clone(localState);
     const user = CH.currentUser();
     const canGlobal = user?.role === "master" || user?.role === "admin";
+    const canManageEvents = canGlobal || user?.role === "teamlead";
     const preferLocal = mode === "save" && canGlobal;
+    const preferLocalEvents = mode === "save" && canManageEvents;
     const participantId = user?.participantId;
     const merged = mode === "startup" ? { ...local, ...remote } : canGlobal ? { ...remote, ...local } : { ...local, ...remote };
     merged.participants = CH.mergeById(remote.participants, local.participants, preferLocal);
     merged.accounts = CH.mergeById(remote.accounts, local.accounts, preferLocal);
     merged.teams = CH.mergeById(remote.teams, local.teams, preferLocal);
     merged.presets = CH.mergeById(remote.presets, local.presets, preferLocal);
-    merged.events = CH.mergeEvents(remote.events, local.events, preferLocal);
+    merged.events = mode === "startup"
+      ? CH.mergeEvents(remote.events, local.events, false)
+      : preferLocalEvents
+      ? CH.mergeEvents(remote.events, local.events, true)
+      : CH.mergeEventStatusesForParticipant(remote.events, local.events, participantId);
     merged.schedules = { ...(remote.schedules || {}) };
     merged.dateSchedules = { ...(remote.dateSchedules || {}) };
     merged.comments = { ...(remote.comments || {}) };

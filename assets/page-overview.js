@@ -20,6 +20,7 @@
     applyMode();
     CH.renderScaleSwitches();
     CH.applyTableSize();
+    document.getElementById("createEventBtn").classList.toggle("hidden", !CH.canManageEvents());
   }
 
   function syncDateFromUrl() {
@@ -273,6 +274,7 @@
     render();
   };
   document.getElementById("createEventBtn").onclick = () => {
+    if (!CH.canManageEvents()) return;
     CH.modal("Создать ивент", CH.eventForm());
     CH.bindEventForm(render);
   };
