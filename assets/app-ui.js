@@ -61,7 +61,10 @@
 
   CH.canViewParticipant = function (participantId) {
     const user = CH.currentUser();
-    return Boolean(user && CH.person(participantId));
+    if (!user || !CH.person(participantId)) return false;
+    if (user.role === "master" || user.role === "admin") return true;
+    if (user.participantId === participantId) return true;
+    return Boolean(user.canViewOthers);
   };
 
   CH.canManageEvents = function () {
@@ -102,6 +105,7 @@
             <div class="password-row"><input name="pin" value=""><button class="btn" type="button" data-generate-password>сгенерировать</button></div>
           </div>
         </div>
+        <label class="check-row"><input type="checkbox" name="canViewOthers" ${CH.state.accounts.find((account) => account.participantId === id)?.canViewOthers ? "checked" : ""}> Разрешить просмотр чужих таблиц без редактирования</label>
         <div class="form-actions">
           <button class="btn primary" type="submit">Сохранить</button>
         </div>
@@ -142,7 +146,14 @@
         CH.state.accounts.push(account);
       }
       account.name = payload.name;
-      account.login = String(form.get("login")).trim() || participantId;
+      account.login = CH.cleanLogin(form.get("login")) || participantId;
+      account.canViewOthers = Boolean(form.get("canViewOthers"));
+      if (CH.isLoginTaken(account.login, account.id)) {
+        alert("Такой логин уже существует. Укажи другой логин.");
+        CH.state = previousState;
+        CH.persistLocal();
+        return;
+      }
       const pin = String(form.get("pin")).trim();
       if (!id && !pin) {
         const input = event.currentTarget.querySelector('[name="pin"]');

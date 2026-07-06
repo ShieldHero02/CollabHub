@@ -172,18 +172,22 @@
   };
 
   CH.saveGlobal = async function (options = {}) {
-    if (!CH.githubToken()) {
-      if (options.allowLocalOnly && confirm("GitHub token не настроен. Удалить запись только локально на этом устройстве? У других пользователей она останется до глобального удаления.")) {
-        CH.persistLocal();
-        CH.toast("Удалено локально");
-        return { localOnly: true };
-      }
-      alert("Для добавления и изменения участников нужен GitHub token в разделе «Данные». Иначе аккаунт сохранится только на этом компьютере.");
-      throw new Error("sync token missing");
-    }
+    const critical = options.critical !== false;
+    CH.normalize();
     localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
-    await CH.pushSharedState();
-    CH.toast("Общие данные сохранены");
+    if (!CH.githubToken()) {
+      CH.toast(critical ? "Нужен GitHub token для общего сохранения" : "Сохранено локально");
+      return { localOnly: true };
+    }
+    try {
+      await CH.pushSharedState();
+      CH.toast("Общие данные сохранены");
+      return { synced: true };
+    } catch (error) {
+      CH.toast("Не удалось сохранить общие данные");
+      if (critical) throw error;
+      return { localOnly: true, error };
+    }
   };
 
   CH.persistLocal = function () {
@@ -261,24 +265,32 @@
     const preferLocalEvents = mode === "save" && canManageEvents;
     const participantId = user?.participantId;
     const merged = mode === "startup" ? { ...local, ...remote } : canGlobal ? { ...remote, ...local } : { ...local, ...remote };
-    merged.participants = CH.mergeById(remote.participants, local.participants, preferLocal);
-    merged.accounts = CH.mergeById(remote.accounts, local.accounts, preferLocal);
-    merged.teams = CH.mergeById(remote.teams, local.teams, preferLocal);
-    merged.presets = CH.mergeById(remote.presets, local.presets, preferLocal);
-    merged.events = mode === "startup"
-      ? CH.mergeEvents(remote.events, local.events, false)
-      : preferLocalEvents
-      ? CH.mergeEvents(remote.events, local.events, true)
-      : CH.mergeEventStatusesForParticipant(remote.events, local.events, participantId);
+    if (preferLocal) {
+      merged.participants = CH.sortById(local.participants || []);
+      merged.accounts = CH.sortById(local.accounts || []);
+      merged.teams = CH.sortById(local.teams || []);
+      merged.presets = CH.sortById(local.presets || []);
+      merged.events = [...(local.events || [])].sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || Number(a.start) - Number(b.start));
+    } else {
+      merged.participants = CH.mergeById(remote.participants, local.participants, false);
+      merged.accounts = CH.mergeById(remote.accounts, local.accounts, false);
+      merged.teams = CH.mergeById(remote.teams, local.teams, false);
+      merged.presets = CH.mergeById(remote.presets, local.presets, false);
+      merged.events = mode === "startup"
+        ? CH.mergeEvents(remote.events, local.events, false)
+        : preferLocalEvents
+        ? CH.mergeEvents(remote.events, local.events, true)
+        : CH.mergeEventStatusesForParticipant(remote.events, local.events, participantId);
+    }
     merged.schedules = { ...(remote.schedules || {}) };
     merged.dateSchedules = { ...(remote.dateSchedules || {}) };
     merged.comments = { ...(remote.comments || {}) };
     merged.memberPresets = { ...(remote.memberPresets || {}) };
     if (preferLocal) {
-      merged.schedules = { ...(remote.schedules || {}), ...(local.schedules || {}) };
-      merged.dateSchedules = { ...(remote.dateSchedules || {}), ...(local.dateSchedules || {}) };
-      merged.comments = { ...(remote.comments || {}), ...(local.comments || {}) };
-      merged.memberPresets = { ...(remote.memberPresets || {}), ...(local.memberPresets || {}) };
+      merged.schedules = { ...(local.schedules || {}) };
+      merged.dateSchedules = { ...(local.dateSchedules || {}) };
+      merged.comments = { ...(local.comments || {}) };
+      merged.memberPresets = { ...(local.memberPresets || {}) };
     } else if (participantId) {
       if (local.schedules?.[participantId]) merged.schedules[participantId] = local.schedules[participantId];
       if (local.dateSchedules?.[participantId]) merged.dateSchedules[participantId] = local.dateSchedules[participantId];
@@ -401,6 +413,17 @@
     CH.state.settings.activeDate = CH.state.settings.activeDate || CH.toDateKey(CH.today());
     CH.state.accounts = CH.state.accounts || [];
     CH.state.teams = CH.state.teams || [];
+    const usedLogins = new Set();
+    CH.state.accounts = CH.state.accounts.filter(Boolean).map((account) => {
+      account.id = account.id || CH.id();
+      account.role = account.role || "member";
+      account.name = String(account.name || account.login || "Account").trim();
+      account.login = CH.cleanLogin(account.login || account.name || account.id);
+      if (usedLogins.has(CH.loginKey(account.login))) account.login = `${account.login}_${account.id.slice(-4)}`;
+      usedLogins.add(CH.loginKey(account.login));
+      account.canViewOthers = Boolean(account.canViewOthers);
+      return account;
+    });
     CH.state.participants.forEach((person) => {
       if (!CH.state.schedules[person.id]) CH.state.schedules[person.id] = CH.blankSchedule("unknown");
       if (!CH.state.dateSchedules[person.id]) CH.state.dateSchedules[person.id] = {};
@@ -409,7 +432,12 @@
         CH.state.memberPresets[person.id] = CH.state.presets.map((preset) => ({ ...preset, id: CH.id() }));
       }
       const hasAccount = CH.state.accounts.some((account) => account.participantId === person.id);
-      if (!hasAccount) CH.state.accounts.push({ id: `acc_${person.id}`, role: "member", name: person.name, login: person.id, participantId: person.id, teamId: null });
+      if (!hasAccount) {
+        let login = CH.cleanLogin(person.name || person.id);
+        if (usedLogins.has(CH.loginKey(login))) login = CH.cleanLogin(person.id);
+        CH.state.accounts.push({ id: `acc_${person.id}`, role: "member", name: person.name, login, participantId: person.id, teamId: null, canViewOthers: false });
+        usedLogins.add(CH.loginKey(login));
+      }
     });
     const participantIds = new Set(CH.state.participants.map((person) => person.id));
     CH.state.accounts = CH.state.accounts.filter((account) => !account.participantId || participantIds.has(account.participantId));
@@ -450,6 +478,24 @@
     return CH.state.teams.find((team) => team.id === id);
   };
 
+  CH.cleanLogin = function (login) {
+    return String(login || "").trim().replace(/\s+/g, "_");
+  };
+
+  CH.loginKey = function (login) {
+    return CH.cleanLogin(login).toLowerCase();
+  };
+
+  CH.findAccountByLogin = function (login) {
+    const key = CH.loginKey(login);
+    return CH.state.accounts.find((item) => CH.loginKey(item.login) === key) || null;
+  };
+
+  CH.isLoginTaken = function (login, exceptAccountId = "") {
+    const key = CH.loginKey(login);
+    return CH.state.accounts.some((item) => item.id !== exceptAccountId && CH.loginKey(item.login) === key);
+  };
+
   CH.hashPassword = async function (password) {
     const bytes = new TextEncoder().encode(String(password));
     const hash = await crypto.subtle.digest("SHA-256", bytes);
@@ -474,7 +520,7 @@
   };
 
   CH.login = async function (login, pin) {
-    const account = CH.state.accounts.find((item) => item.login === login);
+    const account = CH.findAccountByLogin(login);
     if (!account || !(await CH.verifyPassword(account, pin))) return null;
     if (!account.pinHash) {
       await CH.setAccountPassword(account, pin);

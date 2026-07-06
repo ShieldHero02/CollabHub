@@ -80,7 +80,7 @@
           <div class="form-row"><label>Команда</label><select name="teamId">${teamOptions(account.teamId)}</select></div>
         </div>
         <div class="form-row"><label>Участник</label><select name="participantId">${participantOptions(account.participantId)}</select></div>
-        <label class="check-row"><input type="checkbox" name="canViewOthers" ${account.canViewOthers ? "checked" : ""}> Может только просматривать чужие таблицы</label>
+        <label class="check-row"><input type="checkbox" name="canViewOthers" ${account.canViewOthers ? "checked" : ""}> Разрешить просмотр чужих таблиц без редактирования</label>
         <button class="btn primary" type="submit">Сохранить</button>
       </form>`);
     document.getElementById("generateAccountPasswordBtn").onclick = () => {
@@ -93,12 +93,16 @@
       const payload = {
         id: id || CH.id(),
         name: String(form.get("name")).trim(),
-        login: String(form.get("login")).trim(),
+        login: CH.cleanLogin(form.get("login")),
         role: String(form.get("role")),
         participantId: String(form.get("participantId")) || null,
         teamId: String(form.get("teamId")) || null,
         canViewOthers: Boolean(form.get("canViewOthers"))
       };
+      if (CH.isLoginTaken(payload.login, id)) {
+        alert("Такой логин уже существует. Укажи другой логин.");
+        return;
+      }
       const pin = String(form.get("pin")).trim();
       if (!id && !pin) {
         const input = event.currentTarget.querySelector('[name="pin"]');
@@ -180,7 +184,7 @@
     const previousState = CH.clone(CH.state);
     CH.deleteAccount(id);
     try {
-      await CH.saveGlobal({ allowLocalOnly: true });
+      await CH.saveGlobal();
     } catch (error) {
       CH.state = previousState;
       CH.persistLocal();
@@ -198,7 +202,7 @@
       if (account.teamId === id) account.teamId = null;
     });
     try {
-      await CH.saveGlobal({ allowLocalOnly: true });
+      await CH.saveGlobal();
     } catch (error) {
       CH.state = previousState;
       CH.persistLocal();
