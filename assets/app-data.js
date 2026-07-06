@@ -280,7 +280,13 @@
   };
 
   CH.fetchSharedState = async function () {
-    const response = await fetch(`${CH.sharedStateUrl}?v=${Date.now()}`, { cache: "no-store" });
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
+    const response = await fetch(`${CH.sharedStateUrl}?v=${Date.now()}`, {
+      cache: "no-store",
+      signal: controller?.signal
+    });
+    if (timer) clearTimeout(timer);
     if (!response.ok) throw new Error("shared state unavailable");
     return response.json();
   };
@@ -587,5 +593,5 @@
   };
 
   CH.load();
-  CH.applySharedState();
+  CH.sharedReady = CH.applySharedState();
 })();

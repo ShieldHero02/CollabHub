@@ -361,9 +361,14 @@
     });
   };
 
-  CH.requireAuth();
-  CH.renderNav();
-  CH.bindModalClose();
-  CH.renderScaleSwitches();
-  CH.applyTableSize();
+  (async function initUi() {
+    try {
+      await CH.sharedReady;
+    } catch (error) {}
+    CH.requireAuth();
+    CH.renderNav();
+    CH.bindModalClose();
+    CH.renderScaleSwitches();
+    CH.applyTableSize();
+  })();
 })();
