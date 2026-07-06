@@ -40,7 +40,7 @@
     const previousState = CH.clone(CH.state);
     CH.deleteParticipant(id);
     try {
-      await CH.saveGlobal();
+      await CH.saveGlobal({ allowLocalOnly: true });
     } catch (error) {
       CH.state = previousState;
       CH.persistLocal();

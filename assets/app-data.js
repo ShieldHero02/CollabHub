@@ -171,8 +171,13 @@
     CH.toast("Сохранено");
   };
 
-  CH.saveGlobal = async function () {
+  CH.saveGlobal = async function (options = {}) {
     if (!CH.githubToken()) {
+      if (options.allowLocalOnly && confirm("GitHub token не настроен. Удалить запись только локально на этом устройстве? У других пользователей она останется до глобального удаления.")) {
+        CH.persistLocal();
+        CH.toast("Удалено локально");
+        return { localOnly: true };
+      }
       alert("Для добавления и изменения участников нужен GitHub token в разделе «Данные». Иначе аккаунт сохранится только на этом компьютере.");
       throw new Error("sync token missing");
     }

@@ -180,7 +180,7 @@
     const previousState = CH.clone(CH.state);
     CH.deleteAccount(id);
     try {
-      await CH.saveGlobal();
+      await CH.saveGlobal({ allowLocalOnly: true });
     } catch (error) {
       CH.state = previousState;
       CH.persistLocal();
@@ -198,7 +198,7 @@
       if (account.teamId === id) account.teamId = null;
     });
     try {
-      await CH.saveGlobal();
+      await CH.saveGlobal({ allowLocalOnly: true });
     } catch (error) {
       CH.state = previousState;
       CH.persistLocal();
