@@ -7,7 +7,7 @@
     cursor = new Date(date);
     cursor.setDate(1);
     CH.state.settings.activeDate = CH.toDateKey(cursor);
-    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    CH.persist();
   }
 
   function eveningScore(dateKey) {
@@ -74,7 +74,7 @@
     cursor = CH.today();
     cursor.setDate(1);
     CH.state.settings.activeDate = CH.toDateKey(CH.today());
-    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    CH.persist();
     render();
   };
   document.getElementById("yearSelect").onchange = (event) => {

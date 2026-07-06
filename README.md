@@ -14,7 +14,7 @@ The project is intentionally not a corporate calendar, task manager, Trello clon
 - teams and team leads
 - generated passwords
 - JSON export and import
-- local persistence through `localStorage`
+- stable local persistence through `localStorage` and an IndexedDB mirror
 - static deployment config for GitHub Pages, Netlify, and Vercel
 
 ## Run locally
@@ -50,3 +50,9 @@ Headers are configured in `netlify.toml` and `vercel.json`.
 The current version is a trusted-community prototype. Passwords are hashed in the browser, but authentication and roles are still enforced client-side.
 
 Before real production use, move authentication, accounts, permissions, password reset, audit logs, and imports/exports to a backend.
+
+## User data compatibility
+
+User data is intentionally stored under a stable key, `collabhub.userData`, instead of a release-specific project key. Older data from `collabhub.expandable.v3` is migrated automatically.
+
+The app also mirrors the same state into browser IndexedDB database `collabhub-user-data`. This keeps user data separate from project files and makes future UI/code changes safer. Future schema changes should be added as migrations in `assets/app-data.js` without changing the stable storage key.

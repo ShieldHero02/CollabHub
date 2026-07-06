@@ -262,7 +262,7 @@
 
   CH.setScale = function (scale) {
     CH.state.settings.tableScale = scale;
-    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    CH.persist();
     document.querySelectorAll(".heatmap").forEach((grid) => {
       grid.classList.remove("scale-compact", "scale-normal", "scale-large");
       grid.classList.add(`scale-${scale}`);
@@ -324,7 +324,7 @@
           if (!handle.classList.contains("is-dragging")) return;
           handle.classList.remove("is-dragging");
           handle.releasePointerCapture(event.pointerId);
-          localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+          CH.persist();
           CH.toast("Размер таблицы сохранен");
         });
       }
@@ -342,7 +342,7 @@
           CH.state.settings.tableSize = { width, height };
           clearTimeout(CH.tableSizeTimer);
           CH.tableSizeTimer = setTimeout(() => {
-            localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+            CH.persist();
           }, 250);
         });
         observer.observe(wrap);

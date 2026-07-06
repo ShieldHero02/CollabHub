@@ -31,7 +31,7 @@
       CH.state.settings.activeDate = date;
       monthCursor = CH.fromDateKey(date);
       monthCursor.setDate(1);
-      localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+      CH.persist();
     }
   }
 
@@ -39,7 +39,7 @@
     CH.state.settings.activeDate = CH.toDateKey(date);
     monthCursor = new Date(date);
     monthCursor.setDate(1);
-    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    CH.persist();
   }
 
   function renderModeSwitch() {
@@ -185,7 +185,7 @@
         CH.state.settings.activeDate = button.dataset.date;
         monthCursor = CH.fromDateKey(button.dataset.date);
         monthCursor.setDate(1);
-        localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+        CH.persist();
         renderWeekGrid();
         renderMonthGrid();
         mode = "week";

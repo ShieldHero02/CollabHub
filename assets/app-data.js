@@ -1,7 +1,12 @@
 (function () {
   const CH = window.CH = window.CH || {};
   CH.toast = CH.toast || function () {};
-  CH.storageKey = "collabhub.expandable.v3";
+  CH.dataVersion = 1;
+  CH.storageKey = "collabhub.userData";
+  CH.legacyStorageKeys = ["collabhub.expandable.v3"];
+  CH.dbName = "collabhub-user-data";
+  CH.dbStore = "records";
+  CH.dbRecordKey = "state";
   CH.sessionKey = "collabhub.session.v1";
   CH.days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   CH.statuses = {
@@ -146,23 +151,101 @@
     };
   };
 
+  CH.openUserDb = function () {
+    if (!("indexedDB" in window)) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const request = indexedDB.open(CH.dbName, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(CH.dbStore)) db.createObjectStore(CH.dbStore, { keyPath: "key" });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    });
+  };
+
+  CH.writeUserDb = async function (state) {
+    const db = await CH.openUserDb();
+    if (!db) return;
+    await new Promise((resolve) => {
+      const transaction = db.transaction(CH.dbStore, "readwrite");
+      transaction.objectStore(CH.dbStore).put({
+        key: CH.dbRecordKey,
+        schemaVersion: CH.dataVersion,
+        savedAt: new Date().toISOString(),
+        state
+      });
+      transaction.oncomplete = resolve;
+      transaction.onerror = resolve;
+    });
+    db.close();
+  };
+
+  CH.readUserDb = async function () {
+    const db = await CH.openUserDb();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      const transaction = db.transaction(CH.dbStore, "readonly");
+      const request = transaction.objectStore(CH.dbStore).get(CH.dbRecordKey);
+      request.onsuccess = () => {
+        db.close();
+        resolve(request.result?.state || null);
+      };
+      request.onerror = () => {
+        db.close();
+        resolve(null);
+      };
+    });
+  };
+
+  CH.readLocalState = function () {
+    const keys = [CH.storageKey, ...CH.legacyStorageKeys];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (key !== CH.storageKey) localStorage.setItem(CH.storageKey, JSON.stringify(parsed));
+        return parsed;
+      } catch (error) {}
+    }
+    return null;
+  };
+
+  CH.persist = function (options) {
+    CH.state.schemaVersion = CH.dataVersion;
+    CH.state.meta = {
+      ...(CH.state.meta || {}),
+      schemaVersion: CH.dataVersion,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    CH.writeUserDb(CH.state);
+    if (options?.toast) CH.toast("Сохранено");
+  };
+
   CH.load = function () {
     try {
-      const raw = localStorage.getItem(CH.storageKey);
-      CH.state = raw ? JSON.parse(raw) : CH.demo();
+      CH.state = CH.readLocalState() || CH.demo();
     } catch (error) {
       CH.state = CH.demo();
     }
     CH.normalize();
+    CH.persist();
     return CH.state;
   };
 
   CH.save = function () {
-    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    CH.persist();
     CH.toast("Сохранено");
   };
 
   CH.normalize = function () {
+    CH.state.schemaVersion = CH.dataVersion;
+    CH.state.meta = {
+      ...(CH.state.meta || {}),
+      schemaVersion: CH.dataVersion
+    };
     CH.state.participants = CH.state.participants || [];
     CH.state.schedules = CH.state.schedules || {};
     CH.state.dateSchedules = CH.state.dateSchedules || {};
@@ -204,6 +287,16 @@
         event.date = CH.toDateKey(CH.addDays(CH.startOfWeek(CH.fromDateKey(CH.state.settings.activeDate)), event.day));
       }
     });
+  };
+
+  CH.restoreFromUserDb = async function () {
+    if (localStorage.getItem(CH.storageKey)) return;
+    const restored = await CH.readUserDb();
+    if (!restored) return;
+    CH.state = restored;
+    CH.normalize();
+    CH.persist();
+    location.reload();
   };
 
   CH.currentUser = function () {
@@ -255,7 +348,7 @@
     if (!account || !(await CH.verifyPassword(account, pin))) return null;
     if (!account.pinHash) {
       await CH.setAccountPassword(account, pin);
-      localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+      CH.persist();
     }
     localStorage.setItem(CH.sessionKey, account.id);
     return account;
@@ -385,4 +478,5 @@
   };
 
   CH.load();
+  CH.restoreFromUserDb();
 })();
