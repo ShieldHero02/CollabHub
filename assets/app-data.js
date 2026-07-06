@@ -2,6 +2,14 @@
   const CH = window.CH = window.CH || {};
   CH.toast = CH.toast || function () {};
   CH.storageKey = "collabhub.expandable.v3";
+  CH.sharedStateUrl = "data/shared-state.json";
+  CH.syncTokenKey = "collabhub.githubSyncToken";
+  CH.syncRepo = {
+    owner: "ShieldHero02",
+    repo: "CollabHub",
+    branch: "main",
+    path: "data/shared-state.json"
+  };
   CH.sessionKey = "collabhub.session.v1";
   CH.days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   CH.statuses = {
@@ -159,7 +167,182 @@
 
   CH.save = function () {
     localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    CH.queueSharedSave();
     CH.toast("Сохранено");
+  };
+
+  CH.persistLocal = function () {
+    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+  };
+
+  CH.clone = function (value) {
+    return JSON.parse(JSON.stringify(value || {}));
+  };
+
+  CH.sortById = function (items) {
+    return [...(items || [])].sort((a, b) => String(a.id || "").localeCompare(String(b.id || "")));
+  };
+
+  CH.samePayload = function (a, b) {
+    return JSON.stringify(a || null) === JSON.stringify(b || null);
+  };
+
+  CH.mergeById = function (remoteItems, localItems, preferLocal) {
+    const map = new Map();
+    (remoteItems || []).forEach((item) => map.set(item.id, CH.clone(item)));
+    (localItems || []).forEach((item) => {
+      if (!item?.id) return;
+      if (preferLocal || !map.has(item.id)) map.set(item.id, CH.clone(item));
+    });
+    return CH.sortById([...map.values()]);
+  };
+
+  CH.sameEventSlot = function (a, b) {
+    return String(a.title || "") === String(b.title || "")
+      && String(a.date || "") === String(b.date || "")
+      && Number(a.start) === Number(b.start)
+      && Number(a.end) === Number(b.end);
+  };
+
+  CH.mergeEvents = function (remoteEvents, localEvents, preferLocal) {
+    const events = (remoteEvents || []).map(CH.clone);
+    (localEvents || []).forEach((localEvent) => {
+      if (!localEvent?.id) return;
+      const index = events.findIndex((event) => event.id === localEvent.id);
+      if (index < 0) {
+        events.push(CH.clone(localEvent));
+        return;
+      }
+      if (CH.samePayload(events[index], localEvent)) return;
+      if (preferLocal && CH.sameEventSlot(events[index], localEvent)) {
+        events[index] = CH.clone(localEvent);
+        return;
+      }
+      events.push({ ...CH.clone(localEvent), id: `${localEvent.id}_${CH.id()}` });
+    });
+    return events.sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || Number(a.start) - Number(b.start));
+  };
+
+  CH.mergeState = function (remoteState, localState, mode) {
+    const remote = CH.clone(remoteState);
+    const local = CH.clone(localState);
+    const user = CH.currentUser();
+    const canGlobal = user?.role === "master" || user?.role === "admin";
+    const preferLocal = mode === "save" && canGlobal;
+    const participantId = user?.participantId;
+    const merged = mode === "startup" ? { ...local, ...remote } : canGlobal ? { ...remote, ...local } : { ...local, ...remote };
+    merged.participants = CH.mergeById(remote.participants, local.participants, preferLocal);
+    merged.accounts = CH.mergeById(remote.accounts, local.accounts, preferLocal);
+    merged.teams = CH.mergeById(remote.teams, local.teams, preferLocal);
+    merged.presets = CH.mergeById(remote.presets, local.presets, preferLocal);
+    merged.events = CH.mergeEvents(remote.events, local.events, preferLocal);
+    merged.schedules = { ...(remote.schedules || {}) };
+    merged.dateSchedules = { ...(remote.dateSchedules || {}) };
+    merged.comments = { ...(remote.comments || {}) };
+    merged.memberPresets = { ...(remote.memberPresets || {}) };
+    if (preferLocal) {
+      merged.schedules = { ...(remote.schedules || {}), ...(local.schedules || {}) };
+      merged.dateSchedules = { ...(remote.dateSchedules || {}), ...(local.dateSchedules || {}) };
+      merged.comments = { ...(remote.comments || {}), ...(local.comments || {}) };
+      merged.memberPresets = { ...(remote.memberPresets || {}), ...(local.memberPresets || {}) };
+    } else if (participantId) {
+      if (local.schedules?.[participantId]) merged.schedules[participantId] = local.schedules[participantId];
+      if (local.dateSchedules?.[participantId]) merged.dateSchedules[participantId] = local.dateSchedules[participantId];
+      if (local.comments?.[participantId]) merged.comments[participantId] = local.comments[participantId];
+      if (local.memberPresets?.[participantId]) merged.memberPresets[participantId] = local.memberPresets[participantId];
+    }
+    merged.settings = remote.settings || local.settings || {};
+    merged.syncMeta = {
+      version: Math.max(Number(remote.syncMeta?.version || 0), Number(local.syncMeta?.version || 0)) + (mode === "save" ? 1 : 0),
+      updatedAt: new Date().toISOString(),
+      updatedBy: user?.login || "anonymous"
+    };
+    return merged;
+  };
+
+  CH.fetchSharedState = async function () {
+    const response = await fetch(`${CH.sharedStateUrl}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("shared state unavailable");
+    return response.json();
+  };
+
+  CH.applySharedState = async function () {
+    try {
+      const remote = await CH.fetchSharedState();
+      const before = JSON.stringify(CH.state);
+      CH.state = CH.mergeState(remote, CH.state, "startup");
+      CH.normalize();
+      CH.persistLocal();
+      if (JSON.stringify(CH.state) !== before && !sessionStorage.getItem("collabhub.sharedReloaded")) {
+        sessionStorage.setItem("collabhub.sharedReloaded", "1");
+        location.reload();
+      }
+    } catch (error) {}
+  };
+
+  CH.githubToken = function () {
+    return localStorage.getItem(CH.syncTokenKey) || "";
+  };
+
+  CH.setGithubToken = function (token) {
+    const value = String(token || "").trim();
+    if (value) localStorage.setItem(CH.syncTokenKey, value);
+    else localStorage.removeItem(CH.syncTokenKey);
+  };
+
+  CH.githubContentUrl = function () {
+    const repo = CH.syncRepo;
+    return `https://api.github.com/repos/${repo.owner}/${repo.repo}/contents/${repo.path}`;
+  };
+
+  CH.encodeBase64 = function (value) {
+    return btoa(unescape(encodeURIComponent(value)));
+  };
+
+  CH.decodeBase64 = function (value) {
+    return decodeURIComponent(escape(atob(value.replace(/\n/g, ""))));
+  };
+
+  CH.pushSharedState = async function () {
+    const token = CH.githubToken();
+    if (!token) return;
+    const headers = {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
+    const getResponse = await fetch(`${CH.githubContentUrl()}?ref=${encodeURIComponent(CH.syncRepo.branch)}`, { headers, cache: "no-store" });
+    if (!getResponse.ok) throw new Error("cannot read shared state");
+    const file = await getResponse.json();
+    const remote = JSON.parse(CH.decodeBase64(file.content));
+    const merged = CH.mergeState(remote, CH.state, "save");
+    const body = {
+      message: `Sync shared state ${new Date().toISOString()}`,
+      content: CH.encodeBase64(JSON.stringify(merged, null, 2)),
+      sha: file.sha,
+      branch: CH.syncRepo.branch
+    };
+    const putResponse = await fetch(CH.githubContentUrl(), {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!putResponse.ok) throw new Error("cannot write shared state");
+    CH.state = merged;
+    CH.normalize();
+    CH.persistLocal();
+  };
+
+  CH.queueSharedSave = function () {
+    clearTimeout(CH.sharedSaveTimer);
+    CH.sharedSaveTimer = setTimeout(async () => {
+      try {
+        await CH.pushSharedState();
+        if (CH.githubToken()) CH.toast("Общие данные синхронизированы");
+      } catch (error) {
+        if (CH.githubToken()) CH.toast("Не удалось синхронизировать");
+      }
+    }, 900);
   };
 
   CH.normalize = function () {
@@ -385,4 +568,5 @@
   };
 
   CH.load();
+  CH.applySharedState();
 })();

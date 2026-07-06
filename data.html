@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CollabHub — Данные</title>
@@ -37,6 +37,16 @@
         <h2>Сброс</h2>
         <p>Вернуть демо-данные первой версии.</p>
         <button class="btn danger" id="resetBtn">Сброс демо</button>
+      </article>
+      <article class="action-card">
+        <h2>Shared sync</h2>
+        <p>Читает общий data/shared-state.json. Для записи нужен GitHub token с Contents read/write.</p>
+        <input id="syncTokenInput" type="password" placeholder="GitHub token">
+        <div class="day-tools">
+          <button class="btn" id="saveSyncTokenBtn">сохранить токен</button>
+          <button class="btn" id="pullSharedBtn">загрузить общие</button>
+          <button class="btn primary" id="pushSharedBtn">сохранить общие</button>
+        </div>
       </article>
     </section>
     <input type="file" id="importInput" accept="application/json" hidden>

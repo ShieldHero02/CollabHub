@@ -50,3 +50,11 @@ Headers are configured in `netlify.toml` and `vercel.json`.
 The current version is a trusted-community prototype. Passwords are hashed in the browser, but authentication and roles are still enforced client-side.
 
 Before real production use, move authentication, accounts, permissions, password reset, audit logs, and imports/exports to a backend.
+
+## Temporary shared sync
+
+The current GitHub Pages beta uses `data/shared-state.json` as a temporary shared state file. On page load the app reads this file so all users see the same participants and schedules.
+
+Writing shared changes uses the GitHub Contents API. A trusted user must save a GitHub token with `Contents: Read and write` access in the Data page. The token is stored only in that user's browser and is not committed to the repository.
+
+This is an emergency bridge for beta testing, not the final data layer. The planned durable solution is backend API + PostgreSQL.
