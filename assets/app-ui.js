@@ -119,6 +119,7 @@
       event.preventDefault();
       const form = new FormData(event.currentTarget);
       const id = event.currentTarget.dataset.id;
+      const previousState = CH.clone(CH.state);
       const payload = {
         name: String(form.get("name")).trim(),
         color: String(form.get("color")),
@@ -151,7 +152,13 @@
         return;
       }
       if (pin) await CH.setAccountPassword(account, pin);
-      CH.save();
+      try {
+        await CH.saveGlobal();
+      } catch (error) {
+        CH.state = previousState;
+        CH.persistLocal();
+        return;
+      }
       CH.closeModal();
       onDone?.();
     };

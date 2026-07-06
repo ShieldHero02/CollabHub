@@ -89,6 +89,7 @@
     document.getElementById("accountForm").onsubmit = async (event) => {
       event.preventDefault();
       const form = new FormData(event.currentTarget);
+      const previousState = CH.clone(CH.state);
       const payload = {
         id: id || CH.id(),
         name: String(form.get("name")).trim(),
@@ -114,7 +115,13 @@
         if (pin) await CH.setAccountPassword(payload, pin);
         CH.state.accounts.push(payload);
       }
-      CH.save();
+      try {
+        await CH.saveGlobal();
+      } catch (error) {
+        CH.state = previousState;
+        CH.persistLocal();
+        return;
+      }
       CH.closeModal();
       render();
     };
@@ -135,9 +142,10 @@
         <div class="form-row"><label>Участники команды</label><div class="check-grid">${memberChecks}</div></div>
         <button class="btn primary" type="submit">Сохранить</button>
       </form>`);
-    document.getElementById("teamForm").onsubmit = (event) => {
+    document.getElementById("teamForm").onsubmit = async (event) => {
       event.preventDefault();
       const form = new FormData(event.currentTarget);
+      const previousState = CH.clone(CH.state);
       const teamId = id || CH.id();
       const members = CH.state.participants.filter((person) => form.get(`member_${person.id}`)).map((person) => person.id);
       const payload = {
@@ -154,28 +162,48 @@
         if (account.participantId && payload.members.includes(account.participantId)) account.teamId = teamId;
         if (account.participantId === payload.leadId && account.role === "member") account.role = "teamlead";
       });
-      CH.save();
+      try {
+        await CH.saveGlobal();
+      } catch (error) {
+        CH.state = previousState;
+        CH.persistLocal();
+        return;
+      }
       CH.closeModal();
       render();
     };
   }
 
-  function deleteAccount(id) {
+  async function deleteAccount(id) {
     const account = CH.state.accounts.find((item) => item.id === id);
     if (!account || !confirm(`Удалить аккаунт "${account.login}"?`)) return;
+    const previousState = CH.clone(CH.state);
     CH.deleteAccount(id);
-    CH.save();
+    try {
+      await CH.saveGlobal();
+    } catch (error) {
+      CH.state = previousState;
+      CH.persistLocal();
+      return;
+    }
     render();
   }
 
-  function deleteTeam(id) {
+  async function deleteTeam(id) {
     const team = CH.team(id);
     if (!team || !confirm(`Удалить команду "${team.name}"?`)) return;
+    const previousState = CH.clone(CH.state);
     CH.state.teams = CH.state.teams.filter((item) => item.id !== id);
     CH.state.accounts.forEach((account) => {
       if (account.teamId === id) account.teamId = null;
     });
-    CH.save();
+    try {
+      await CH.saveGlobal();
+    } catch (error) {
+      CH.state = previousState;
+      CH.persistLocal();
+      return;
+    }
     render();
   }
 

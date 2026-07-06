@@ -7,7 +7,7 @@
   CH.syncRepo = {
     owner: "ShieldHero02",
     repo: "CollabHub",
-    branch: "main",
+    branch: "gh-pages",
     path: "data/shared-state.json"
   };
   CH.sessionKey = "collabhub.session.v1";
@@ -169,6 +169,16 @@
     localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
     CH.queueSharedSave();
     CH.toast("Сохранено");
+  };
+
+  CH.saveGlobal = async function () {
+    if (!CH.githubToken()) {
+      alert("Для добавления и изменения участников нужен GitHub token в разделе «Данные». Иначе аккаунт сохранится только на этом компьютере.");
+      throw new Error("sync token missing");
+    }
+    localStorage.setItem(CH.storageKey, JSON.stringify(CH.state));
+    await CH.pushSharedState();
+    CH.toast("Общие данные сохранены");
   };
 
   CH.persistLocal = function () {

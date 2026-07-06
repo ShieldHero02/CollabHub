@@ -34,11 +34,18 @@
     CH.bindPersonForm(render);
   }
 
-  function deletePerson(id) {
+  async function deletePerson(id) {
     const person = CH.person(id);
     if (!person || !confirm(`Удалить участника "${person.name}"?`)) return;
+    const previousState = CH.clone(CH.state);
     CH.deleteParticipant(id);
-    CH.save();
+    try {
+      await CH.saveGlobal();
+    } catch (error) {
+      CH.state = previousState;
+      CH.persistLocal();
+      return;
+    }
     render();
   }
 
