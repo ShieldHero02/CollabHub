@@ -80,6 +80,46 @@ Requires Master-level role management.
 
 Returns available permission keys.
 
+## Legacy Import
+
+### `POST /api/imports/legacy/preview`
+
+Requires `import:legacy`.
+
+Accepts the old static-site JSON export and returns an import summary without writing data.
+
+Summary includes:
+
+- accounts;
+- participants;
+- teams;
+- weekly template slots;
+- exact dated slots;
+- comments;
+- presets;
+- events;
+- event participant responses;
+- warnings.
+
+### `POST /api/imports/legacy`
+
+Requires `import:legacy`.
+
+Imports the old static-site JSON into PostgreSQL.
+
+Mapping:
+
+- `accounts` -> `users`;
+- `participants` -> `participant_profiles`;
+- `schedules` -> `availability_template_slots`;
+- `dateSchedules` -> `availability_slots`;
+- `comments` -> `availability_comments`;
+- `memberPresets` -> `availability_presets`;
+- `teams` -> `teams` + `team_members`;
+- `events` -> `events` + `event_participants`.
+
+Old static-site `pinHash` values are imported as legacy SHA-256 hashes. On first successful login, the password is upgraded to argon2.
+
 ## Session Model
 
 The browser can use either:

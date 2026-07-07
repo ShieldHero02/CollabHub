@@ -1,10 +1,10 @@
-import argon2 from "argon2";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../../plugins/prisma.js";
 import { createSession, publicUser, resolveAuthUserFromToken, setSessionCookie, clearSessionCookie, hashSessionToken, readSessionToken } from "./session.js";
 import { assignRoleByKey, ensureSystemAccess } from "./rbac.seed.js";
 import { unauthorized } from "../../http/errors.js";
+import { hashPassword, isLegacyPasswordHash, verifyPassword } from "./passwords.js";
 
 const credentialsSchema = z.object({
   login: z.string().trim().min(2).max(64),
@@ -28,7 +28,7 @@ export async function registerAuthRoutes(server: FastifyInstance) {
     if (usersCount > 0) return reply.code(409).send({ error: "already_bootstrapped", message: "Master account already exists" });
 
     const input = bootstrapSchema.parse(request.body);
-    const passwordHash = await argon2.hash(input.password);
+    const passwordHash = await hashPassword(input.password);
     const user = await prisma.user.create({
       data: {
         login: input.login,
@@ -68,8 +68,14 @@ export async function registerAuthRoutes(server: FastifyInstance) {
         }
       }
     });
-    if (!user || user.status !== "active" || !(await argon2.verify(user.passwordHash, input.password))) {
+    if (!user || user.status !== "active" || !(await verifyPassword(user.passwordHash, input.password))) {
       return unauthorized(reply, "Invalid login or password");
+    }
+    if (isLegacyPasswordHash(user.passwordHash)) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: await hashPassword(input.password) }
+      });
     }
 
     const session = await createSession(user.id);

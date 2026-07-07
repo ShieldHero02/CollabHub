@@ -1,10 +1,10 @@
-import argon2 from "argon2";
 import type { FastifyInstance } from "fastify";
 import { roles, type Role } from "@collabhub/domain";
 import { z } from "zod";
 import { requirePermission, requireUser } from "../../http/auth.js";
 import { prisma } from "../../plugins/prisma.js";
 import { assignRoleByKey, ensureSystemAccess } from "../auth/rbac.seed.js";
+import { hashPassword } from "../auth/passwords.js";
 
 const createUserSchema = z.object({
   login: z.string().trim().min(2).max(64),
@@ -84,7 +84,7 @@ export async function registerUserRoutes(server: FastifyInstance) {
       return reply.code(403).send({ error: "forbidden", message: "Only Master can create another master-level account" });
     }
 
-    const passwordHash = await argon2.hash(input.password);
+    const passwordHash = await hashPassword(input.password);
     const created = await prisma.user.create({
       data: {
         login: input.login,

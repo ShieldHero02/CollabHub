@@ -49,3 +49,21 @@ export type RoleDto = {
   permissions: string[];
 };
 
+export type LegacyImportPreviewDto = {
+  participants: number;
+  accounts: number;
+  teams: number;
+  templateSlots: number;
+  datedSlots: number;
+  comments: number;
+  presets: number;
+  events: number;
+  eventParticipants: number;
+  warnings: string[];
+};
+
+export type LegacyImportResultDto = {
+  jobId: string;
+  summary: LegacyImportPreviewDto;
+};
+

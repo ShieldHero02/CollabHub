@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { closePrisma } from "./plugins/prisma.js";
 import { registerAuthRoutes } from "./modules/auth/auth.routes.js";
 import { registerHealthRoutes } from "./modules/health/health.routes.js";
+import { registerImportRoutes } from "./modules/imports/imports.routes.js";
 import { registerRoleRoutes } from "./modules/roles/roles.routes.js";
 import { registerMeRoutes } from "./modules/users/me.routes.js";
 import { registerUserRoutes } from "./modules/users/users.routes.js";
@@ -40,6 +41,7 @@ export async function buildServer() {
   await registerMeRoutes(server);
   await registerUserRoutes(server);
   await registerRoleRoutes(server);
+  await registerImportRoutes(server);
 
   return server;
 }
