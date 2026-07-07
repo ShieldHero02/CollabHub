@@ -19,6 +19,21 @@ Authentication identity.
 
 `role_key` is the user's primary role key for quick reads. Full permissions are resolved through `user_roles`, `access_roles`, `role_permissions`, and `permissions`.
 
+Users are login accounts. A user can have one participant profile in the first version. The system may later allow service accounts or viewer accounts without a participant profile.
+
+### sessions
+
+Server-side session records.
+
+- `id`
+- `user_id`
+- `token_hash`
+- `expires_at`
+- `created_at`
+- `last_seen_at`
+
+Only token hashes are stored. Raw session tokens are never stored in the database.
+
 ### access_roles
 
 Configurable roles. System roles are seeded, but Master can add new roles later.
@@ -106,6 +121,8 @@ Public participant profile connected to a user.
 - `created_at`
 - `updated_at`
 
+This is the person visible in schedules, teams, events, and availability aggregation.
+
 ### user_preferences
 
 Personal cabinet settings.
@@ -135,6 +152,33 @@ Personal cabinet settings.
 - `profile_id`
 - `created_at`
 
+Team membership does not replace roles. Roles answer "what can this account do"; teams answer "which people are grouped together".
+
+### availability_template_slots
+
+Default weekly schedule for one participant.
+
+- `id`
+- `profile_id`
+- `day_of_week`
+- `hour`
+- `status`
+- `created_at`
+- `updated_at`
+
+Unique key:
+
+```text
+profile_id + day_of_week + hour
+```
+
+Rules:
+
+- `day_of_week` uses 0-6, Monday first;
+- `hour` uses 0-23;
+- this table stores the recurring weekly baseline;
+- exact dated slots override the template.
+
 ### availability_slots
 
 One participant status for one exact date/hour.
@@ -152,6 +196,13 @@ Unique key:
 ```text
 profile_id + date + hour
 ```
+
+Rules:
+
+- this table stores concrete planning for exact dates;
+- it supports planning weeks or months ahead;
+- if a concrete date/hour is absent, the weekly template is used;
+- if both are absent, status is `unknown`.
 
 ### availability_comments
 
@@ -171,6 +222,8 @@ Unique key:
 profile_id + date + hour
 ```
 
+Comments are tied to exact dates, not to the recurring weekly template. This keeps notes like "late stream today" from repeating forever by accident.
+
 ### availability_presets
 
 Personal fill presets.
@@ -183,6 +236,8 @@ Personal fill presets.
 - `status`
 - `created_at`
 - `updated_at`
+
+Presets describe reusable fill actions. In v2 first version a preset is a single time range and status. More complex multi-block presets can be added later without changing schedule storage.
 
 ### events
 
@@ -202,6 +257,16 @@ Event overlay.
 - `updated_at`
 
 Events can overlap. The UI decides how to stack them.
+
+Events are not availability. They are a separate overlay on top of availability data.
+
+Rules:
+
+- an event belongs to the user who created it;
+- the creator can edit/delete it if their role grants own-event permissions;
+- elevated roles can manage broader event scopes;
+- multiple events can exist at the same date/time;
+- event participants are responses, not schedule replacements.
 
 ### event_participants
 
@@ -261,6 +326,23 @@ Important mutations.
 - `metadata`
 - `created_at`
 
+## Availability Resolution
+
+For any `profile_id + date + hour`, backend resolves availability in this order:
+
+1. `availability_slots` exact date/hour.
+2. `availability_template_slots` for matching weekday/hour.
+3. `unknown`.
+
+Events are fetched separately and rendered as an overlay. They must not overwrite availability slots.
+
+This keeps the product centered around people:
+
+- weekly defaults make common availability fast to fill;
+- dated slots allow planning specific weeks/months ahead;
+- comments explain exceptional cells;
+- events show collaboration opportunities without becoming the source of truth for availability.
+
 ## Permission Rules
 
 ### View
@@ -306,7 +388,8 @@ Legacy data must be migrated once into normalized tables:
 
 - `accounts` -> `users`
 - `participants` -> `participant_profiles`
-- `schedules` and `dateSchedules` -> `availability_slots`
+- `schedules` -> `availability_template_slots`
+- `dateSchedules` -> `availability_slots`
 - `comments` -> `availability_comments`
 - `events` -> `events` + `event_participants`
 - `memberPresets` -> `availability_presets`

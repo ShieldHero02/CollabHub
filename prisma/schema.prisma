@@ -57,10 +57,25 @@ model User {
   createdEvents     Event[]            @relation("CreatedEvents")
   connectedAccounts ConnectedAccount[]
   roleAssignments   UserRole[]
+  sessions          Session[]
   importJobs        ImportJob[]
   auditLogs         AuditLog[]
 
   @@map("users")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  tokenHash  String   @unique @map("token_hash")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 model AccessRole {
@@ -121,6 +136,7 @@ model ParticipantProfile {
   updatedAt            DateTime              @updatedAt @map("updated_at")
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   availabilitySlots    AvailabilitySlot[]
+  availabilityTemplates AvailabilityTemplateSlot[]
   availabilityComments AvailabilityComment[]
   availabilityPresets  AvailabilityPreset[]
   teamMemberships      TeamMember[]
@@ -168,6 +184,21 @@ model TeamMember {
 
   @@id([teamId, profileId])
   @@map("team_members")
+}
+
+model AvailabilityTemplateSlot {
+  id        String             @id @default(cuid())
+  profileId String             @map("profile_id")
+  dayOfWeek Int                @map("day_of_week")
+  hour      Int
+  status    AvailabilityStatus @default(unknown)
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  profile   ParticipantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, dayOfWeek, hour])
+  @@index([dayOfWeek, hour])
+  @@map("availability_template_slots")
 }
 
 model AvailabilitySlot {
