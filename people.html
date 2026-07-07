@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CollabHub — Участники</title>
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-page="people">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">CH</span><span><b>CollabHub</b><small>участники</small></span></a>
+    <nav class="main-nav" id="mainNav"></nav>
+  </aside>
+
+  <main class="workspace">
+    <header class="page-head">
+      <div>
+        <h1>Участники</h1>
+        <p>Люди первичны. У каждого своя недельная таблица и интересы.</p>
+      </div>
+      <button class="btn primary" id="addPersonBtn">+ участник</button>
+    </header>
+    <section class="people-layout" id="peopleList"></section>
+  </main>
+
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-card">
+      <header><strong id="modalTitle"></strong><button class="icon-btn" id="closeModalBtn">×</button></header>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="assets/app-data.js"></script>
+  <script src="assets/app-ui.js"></script>
+  <script src="assets/page-people.js"></script>
+</body>
+</html>

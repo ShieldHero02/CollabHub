@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  active
+  suspended
+  invited
+}
+
+enum AvailabilityStatus {
+  free
+  busy
+  maybe
+  stream
+  work
+  study
+  unknown
+}
+
+enum EventParticipantStatus {
+  going
+  maybe
+  no
+  invited
+}
+
+enum EventVisibility {
+  private
+  community
+  public
+}
+
+enum ImportStatus {
+  pending
+  previewed
+  imported
+  failed
+}
+
+model User {
+  id                String             @id @default(cuid())
+  login             String             @unique
+  email             String?            @unique
+  passwordHash      String             @map("password_hash")
+  roleKey           String             @default("member") @map("role_key")
+  status            AccountStatus      @default(active)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  profile           ParticipantProfile?
+  preferences       UserPreference?
+  createdEvents     Event[]            @relation("CreatedEvents")
+  connectedAccounts ConnectedAccount[]
+  roleAssignments   UserRole[]
+  sessions          Session[]
+  importJobs        ImportJob[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  tokenHash  String   @unique @map("token_hash")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AccessRole {
+  id              String           @id @default(cuid())
+  key             String           @unique
+  name            String
+  description     String?
+  isSystem        Boolean          @default(false) @map("is_system")
+  isMasterManaged Boolean          @default(true) @map("is_master_managed")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  userAssignments UserRole[]
+  permissions     RolePermission[]
+
+  @@map("access_roles")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  roleLinks   RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId    String     @map("user_id")
+  roleId    String     @map("role_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      AccessRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  role         AccessRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model ParticipantProfile {
+  id                   String                @id @default(cuid())
+  userId               String                @unique @map("user_id")
+  displayName          String                @map("display_name")
+  color                String
+  avatarUrl            String?               @map("avatar_url")
+  interests            String[]              @default([])
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availabilitySlots    AvailabilitySlot[]
+  availabilityTemplates AvailabilityTemplateSlot[]
+  availabilityComments AvailabilityComment[]
+  availabilityPresets  AvailabilityPreset[]
+  teamMemberships      TeamMember[]
+  leadingTeams         Team[]                @relation("TeamLead")
+  eventParticipants    EventParticipant[]
+
+  @@map("participant_profiles")
+}
+
+model UserPreference {
+  userId       String   @id @map("user_id")
+  theme        String   @default("dark")
+  density      String   @default("normal")
+  timezone     String   @default("UTC")
+  weekStartsOn Int      @default(1) @map("week_starts_on")
+  defaultView  String   @default("overview") @map("default_view")
+  showEvents   Boolean  @default(true) @map("show_events")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model Team {
+  id            String              @id @default(cuid())
+  name          String
+  color         String
+  leadProfileId String?             @map("lead_profile_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  lead          ParticipantProfile? @relation("TeamLead", fields: [leadProfileId], references: [id], onDelete: SetNull)
+  members       TeamMember[]
+  events        Event[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId    String   @map("team_id")
+  profileId String   @map("profile_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  profile   ParticipantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, profileId])
+  @@map("team_members")
+}
+
+model AvailabilityTemplateSlot {
+  id        String             @id @default(cuid())
+  profileId String             @map("profile_id")
+  dayOfWeek Int                @map("day_of_week")
+  hour      Int
+  status    AvailabilityStatus @default(unknown)
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  profile   ParticipantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, dayOfWeek, hour])
+  @@index([dayOfWeek, hour])
+  @@map("availability_template_slots")
+}
+
+model AvailabilitySlot {
+  id        String             @id @default(cuid())
+  profileId String             @map("profile_id")
+  date      DateTime           @db.Date
+  hour      Int
+  status    AvailabilityStatus @default(unknown)
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  profile   ParticipantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, date, hour])
+  @@index([date, hour])
+  @@map("availability_slots")
+}
+
+model AvailabilityComment {
+  id        String             @id @default(cuid())
+  profileId String             @map("profile_id")
+  date      DateTime           @db.Date
+  hour      Int
+  body      String
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  profile   ParticipantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, date, hour])
+  @@map("availability_comments")
+}
+
+model AvailabilityPreset {
+  id        String             @id @default(cuid())
+  profileId String             @map("profile_id")
+  name      String
+  startHour Int                @map("start_hour")
+  endHour   Int                @map("end_hour")
+  status    AvailabilityStatus
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  profile   ParticipantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("availability_presets")
+}
+
+model Event {
+  id              String              @id @default(cuid())
+  title           String
+  activity        String?
+  description     String?
+  date            DateTime            @db.Date
+  startHour       Int                 @map("start_hour")
+  endHour         Int                 @map("end_hour")
+  createdByUserId String              @map("created_by_user_id")
+  teamId          String?             @map("team_id")
+  visibility      EventVisibility     @default(community)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  createdBy       User                @relation("CreatedEvents", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  team            Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  participants    EventParticipant[]
+
+  @@index([date, startHour])
+  @@map("events")
+}
+
+model EventParticipant {
+  eventId   String                 @map("event_id")
+  profileId String                 @map("profile_id")
+  status    EventParticipantStatus @default(invited)
+  updatedAt DateTime               @updatedAt @map("updated_at")
+  event     Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile   ParticipantProfile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, profileId])
+  @@map("event_participants")
+}
+
+model ConnectedAccount {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  displayName       String?  @map("display_name")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("connected_accounts")
+}
+
+model ImportJob {
+  id              String       @id @default(cuid())
+  createdByUserId String       @map("created_by_user_id")
+  status          ImportStatus @default(pending)
+  sourceFormat    String       @map("source_format")
+  summary         Json?
+  error           String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  finishedAt      DateTime?    @map("finished_at")
+  createdBy       User         @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@map("import_jobs")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?  @map("actor_user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+

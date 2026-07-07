@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CollabHub — Данные</title>
+  <link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-page="data">
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">CH</span><span><b>CollabHub</b><small>данные</small></span></a>
+    <nav class="main-nav" id="mainNav"></nav>
+  </aside>
+
+  <main class="workspace">
+    <header class="page-head">
+      <div>
+        <h1>Данные</h1>
+        <p>Локальное хранение, экспорт, импорт и сброс демо-данных.</p>
+      </div>
+    </header>
+
+    <section class="data-actions">
+      <article class="action-card">
+        <h2>Экспорт</h2>
+        <p>Скачать текущие данные в JSON.</p>
+        <button class="btn primary" id="exportBtn">Экспорт JSON</button>
+      </article>
+      <article class="action-card">
+        <h2>Импорт</h2>
+        <p>Загрузить ранее сохраненный JSON.</p>
+        <button class="btn" id="importBtn">Импорт JSON</button>
+      </article>
+      <article class="action-card danger-zone">
+        <h2>Сброс</h2>
+        <p>Вернуть демо-данные первой версии.</p>
+        <button class="btn danger" id="resetBtn">Сброс демо</button>
+      </article>
+    </section>
+    <input type="file" id="importInput" accept="application/json" hidden>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <script src="assets/app-data.js"></script>
+  <script src="assets/app-ui.js"></script>
+  <script src="assets/page-data.js"></script>
+</body>
+</html>
