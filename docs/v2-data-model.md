@@ -12,10 +12,86 @@ Authentication identity.
 - `login`
 - `email`
 - `password_hash`
-- `role`
+- `role_key`
 - `status`
 - `created_at`
 - `updated_at`
+
+`role_key` is the user's primary role key for quick reads. Full permissions are resolved through `user_roles`, `access_roles`, `role_permissions`, and `permissions`.
+
+### access_roles
+
+Configurable roles. System roles are seeded, but Master can add new roles later.
+
+- `id`
+- `key`
+- `name`
+- `description`
+- `is_system`
+- `is_master_managed`
+- `created_at`
+- `updated_at`
+
+Seed roles:
+
+- `master`
+- `head_admin`
+- `admin`
+- `manager`
+- `teamlead`
+- `member`
+- `viewer`
+
+Only Master can create, edit, delete, or assign role permissions.
+
+### permissions
+
+Atomic access flags.
+
+- `id`
+- `key`
+- `description`
+- `created_at`
+
+Important first-version permissions:
+
+- `dashboard:view`
+- `schedule:view:self`
+- `schedule:view:team`
+- `schedule:view:all`
+- `schedule:edit:self`
+- `schedule:edit:team`
+- `schedule:edit:all`
+- `event:view:all`
+- `event:respond:all`
+- `event:create`
+- `event:edit:own`
+- `event:delete:own`
+- `event:manage:team`
+- `event:edit:all`
+- `event:delete:all`
+- `team:view`
+- `team:manage`
+- `user:manage`
+- `role:manage`
+- `import:legacy`
+- `system:manage`
+
+### user_roles
+
+Role assignments for users.
+
+- `user_id`
+- `role_id`
+- `created_at`
+
+### role_permissions
+
+Permission assignments for roles.
+
+- `role_id`
+- `permission_id`
+- `created_at`
 
 ### participant_profiles
 
@@ -200,9 +276,23 @@ Important mutations.
 
 ### Edit Events
 
-- member: own event participation status only;
-- teamlead: events in their team;
-- admin/master: all events.
+- member: can view all community events, respond to any event, create events, edit/delete only own events;
+- teamlead: member permissions plus team event management;
+- manager: can use dashboard, create events, and manage events for coordination;
+- admin/head_admin/master: manage all events depending on role permissions.
+
+Event visibility and event editing are separate:
+
+- seeing an event does not grant editing;
+- responding to an event does not grant editing;
+- participants can respond to other people's events;
+- only creator or elevated roles can edit/delete the event itself.
+
+### Manage Roles
+
+- Master only.
+- Admins can manage users only if granted `user:manage`.
+- Role and permission management requires `role:manage` and must still be limited to Master account.
 
 ### Manage Users
 

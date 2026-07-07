@@ -8,6 +8,7 @@ Goal: agree on technical foundation before code.
 - approve repository shape;
 - approve core modules;
 - approve roles and permissions;
+- approve default RBAC seed data;
 - approve database draft;
 - approve UI/design-system direction.
 
@@ -33,6 +34,7 @@ Goal: real accounts and protected pages.
 - password hashing;
 - sessions;
 - roles;
+- permission resolution;
 - current user endpoint;
 - master bootstrap;
 - personal cabinet shell.
@@ -54,7 +56,8 @@ Goal: replace localStorage schedule with database-backed availability.
 Goal: event overlay with correct permissions.
 
 - create/edit/delete events by role;
-- own event status for members;
+- view/respond to all community events;
+- edit/delete own events for members;
 - event suggestions based on availability;
 - overlapping event display;
 - month view event display.
@@ -65,6 +68,7 @@ Goal: usable community management.
 
 - users;
 - roles;
+- Master-only role and permission management;
 - teams;
 - team leads;
 - member assignment;

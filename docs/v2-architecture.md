@@ -95,10 +95,14 @@ Rules live here:
 
 - a member edits only their own availability;
 - a member can view other participants;
-- a member edits only their own event participation status;
-- a master/admin manages users, roles, teams, imports;
+- a member can see all community events and respond to any event;
+- a member edits/deletes only events they created;
+- a master/admin manages users, teams, imports according to permissions;
+- only the master account manages roles and permission matrices;
 - a team lead can manage team events;
 - events are an overlay and never replace availability.
+
+Roles are not hardcoded as the long-term source of truth. The system ships with default roles (`master`, `head_admin`, `admin`, `manager`, `teamlead`, `member`, `viewer`), but backend authorization is permission-based. New roles can be added later by Master without changing the database shape.
 
 ### Application
 

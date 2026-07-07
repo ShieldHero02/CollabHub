@@ -4,7 +4,7 @@ export function canEditProfile(role: Role, actorProfileId: string | null, target
   return canEditParticipant({ role, profileId: actorProfileId }, targetProfileId);
 }
 
-export function canManageEvent(role: Role) {
-  return canManageEvents(role);
+export function canManageEvent(role: Role, actorProfileId: string | null) {
+  return canManageEvents({ role, profileId: actorProfileId });
 }
 

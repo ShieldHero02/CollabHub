@@ -7,14 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  master
-  admin
-  teamlead
-  member
-  viewer
-}
-
 enum AccountStatus {
   active
   suspended
@@ -56,7 +48,7 @@ model User {
   login             String             @unique
   email             String?            @unique
   passwordHash      String             @map("password_hash")
-  role              Role               @default(member)
+  roleKey           String             @default("member") @map("role_key")
   status            AccountStatus      @default(active)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
@@ -64,10 +56,58 @@ model User {
   preferences       UserPreference?
   createdEvents     Event[]            @relation("CreatedEvents")
   connectedAccounts ConnectedAccount[]
+  roleAssignments   UserRole[]
   importJobs        ImportJob[]
   auditLogs         AuditLog[]
 
   @@map("users")
+}
+
+model AccessRole {
+  id              String           @id @default(cuid())
+  key             String           @unique
+  name            String
+  description     String?
+  isSystem        Boolean          @default(false) @map("is_system")
+  isMasterManaged Boolean          @default(true) @map("is_master_managed")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  userAssignments UserRole[]
+  permissions     RolePermission[]
+
+  @@map("access_roles")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  roleLinks   RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId    String     @map("user_id")
+  roleId    String     @map("role_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      AccessRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  role         AccessRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
 }
 
 model ParticipantProfile {

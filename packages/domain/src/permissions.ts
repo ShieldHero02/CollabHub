@@ -1,25 +1,53 @@
-import { type Actor, isAdminRole, type Role } from "./roles.js";
+import { type Actor, hasPermission, isAdminRole } from "./roles.js";
 
 export function canViewParticipant(actor: Actor | null, targetProfileId: string) {
-  return Boolean(actor && targetProfileId);
+  if (!actor || !targetProfileId) return false;
+  if (actor.profileId === targetProfileId) return hasPermission(actor, "schedule:view:self");
+  return hasPermission(actor, "schedule:view:all") || hasPermission(actor, "schedule:view:team");
 }
 
 export function canEditParticipant(actor: Actor | null, targetProfileId: string) {
   if (!actor) return false;
-  if (isAdminRole(actor.role)) return true;
-  return actor.profileId === targetProfileId;
+  if (hasPermission(actor, "schedule:edit:all")) return true;
+  if (actor.profileId === targetProfileId) return hasPermission(actor, "schedule:edit:self");
+  return hasPermission(actor, "schedule:edit:team");
 }
 
-export function canManageEvents(role: Role) {
-  return role === "master" || role === "admin" || role === "teamlead";
+export function canViewEvents(actor: Actor | null) {
+  return hasPermission(actor, "event:view:all");
 }
 
-export function canEditOwnEventStatus(actor: Actor | null, targetProfileId: string) {
+export function canRespondToEvent(actor: Actor | null) {
+  return hasPermission(actor, "event:respond:all");
+}
+
+export function canCreateEvent(actor: Actor | null) {
+  return hasPermission(actor, "event:create");
+}
+
+export function canEditEvent(actor: Actor | null, eventOwnerUserId: string, actorUserId: string | null) {
   if (!actor) return false;
-  return canManageEvents(actor.role) || actor.profileId === targetProfileId;
+  if (hasPermission(actor, "event:edit:all")) return true;
+  if (actorUserId && actorUserId === eventOwnerUserId) return hasPermission(actor, "event:edit:own");
+  return hasPermission(actor, "event:manage:team");
+}
+
+export function canDeleteEvent(actor: Actor | null, eventOwnerUserId: string, actorUserId: string | null) {
+  if (!actor) return false;
+  if (hasPermission(actor, "event:delete:all")) return true;
+  if (actorUserId && actorUserId === eventOwnerUserId) return hasPermission(actor, "event:delete:own");
+  return hasPermission(actor, "event:manage:team");
+}
+
+export function canEditOwnEventStatus(actor: Actor | null) {
+  return canRespondToEvent(actor);
+}
+
+export function canManageEvents(actor: Actor | null) {
+  return hasPermission(actor, "event:edit:all") || hasPermission(actor, "event:manage:team");
 }
 
 export function canImportLegacyData(actor: Actor | null) {
-  return actor?.role === "master";
+  return isAdminRole(actor?.role ?? "member") && hasPermission(actor, "import:legacy");
 }
 
